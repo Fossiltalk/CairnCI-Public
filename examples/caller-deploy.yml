@@ -1,0 +1,42 @@
+# Drop this in your repo at .github/workflows/sf-deploy.yml
+# It deploys to the org mapped to each deployable branch on merge.
+#
+# Map each branch to a GitHub Environment of the same name (Settings >
+# Environments) and store that org's SFDX_AUTH_URL secret on the environment.
+# Only list branches that have a deployable org.
+#
+# Extensions (from CairnCI-Extensions or your own) are added as additional jobs
+# alongside or after the core deploy job. See the commented examples at the
+# bottom of this file.
+name: Salesforce Deploy
+
+on:
+  push:
+    branches: [develop, uat, main]
+    paths:
+      - "force-app/**"
+
+jobs:
+  deploy:
+    uses: Fossiltalk/CairnCI-Public/.github/workflows/sf-deploy.yml@v1
+    with:
+      environment: ${{ github.ref_name }} # branch name == environment name
+      source-dir: force-app
+      test-level: RunLocalTests
+      # Optional: if the deploy to the org fails, re-align git with the org.
+      # 'revert-pr' is safe for protected branches; 'revert-push' pushes directly.
+      # rollback-strategy: revert-pr
+    # Required for environment-scoped secrets: the SFDX_AUTH_URL stored on the
+    # GitHub Environment named above resolves inside the reusable workflow.
+    secrets: inherit
+
+  # ---------------------------------------------------------------------------
+  # Extensions — add any number of additional jobs here.
+  # Each extension runs after `deploy` completes. Remove any you don't need.
+  # ---------------------------------------------------------------------------
+
+  # Custom extension: run a post-deploy step (e.g. notify, smoke test, sync).
+  # my-post-deploy:
+  #   needs: deploy
+  #   uses: ./.github/workflows/my-post-deploy.yml
+  #   secrets: inherit
