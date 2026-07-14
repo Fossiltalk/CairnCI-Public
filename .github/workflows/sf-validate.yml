@@ -22,20 +22,20 @@ on:
         type: string
         default: '["ubuntu-latest"]'
       node-version:
-        description: "Node.js version. Default '20' (pinned; newer LTS releases trigger an unsettled top-level await error in the Salesforce CLI). sfdx-git-delta requires >= 20."
+        description: "Node.js version. Default '22' (Active LTS). @salesforce/cli 2.142+ bundles an undici that calls worker_threads.markAsUncloneable (Node >= 22.10), so Node 20 crashes at CLI load with 'markAsUncloneable is not a function'. sfdx-git-delta requires >= 20."
         required: false
         type: string
-        default: "20"
+        default: "22"
       sf-cli-version:
-        description: "@salesforce/cli version (npm dist-tag or exact version)."
+        description: "@salesforce/cli version (npm dist-tag or exact version). Pinned to 2.142.7 for a reproducible toolchain; bump via the 'Bump SF Toolchain Versions' workflow. Requires node-version >= 22 (see note there)."
         required: false
         type: string
-        default: "latest"
+        default: "2.142.7"
       sgd-version:
-        description: "sfdx-git-delta plugin version (npm dist-tag or exact version). Default 'stable'."
+        description: "sfdx-git-delta plugin version (npm dist-tag or exact version). Pinned to 6.31.0 (the stable channel at pin time) for a reproducible toolchain; bump via the 'Bump SF Toolchain Versions' workflow."
         required: false
         type: string
-        default: "stable"
+        default: "6.31.0"
       config-file:
         description: "Path to an optional JSON config file in the consumer repo."
         required: false
@@ -92,6 +92,10 @@ jobs:
     name: Validate delta
     runs-on: ${{ fromJSON(inputs.runs-on) }}
     environment: ${{ inputs.environment }}
+    # Read-only: validation checks out the repo and uploads the job-id artifact;
+    # it never writes back. (sf-deploy.yml declares write scopes for rollback.)
+    permissions:
+      contents: read
     steps:
       - name: Checkout (full history for delta)
         uses: actions/checkout@v7
